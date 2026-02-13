@@ -404,18 +404,89 @@ export default function PizzaCanvas() {
       }
     };
 
+    // --- Helper: draw the back face of the pizza (crust bottom with texture) ---
+    const drawBackFace = () => {
+      // Outer crust ring – same as front
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, pizzaRadius + 10, 0, Math.PI * 2);
+      ctx.fillStyle = '#C8944A';
+      ctx.fill();
+      ctx.strokeStyle = '#8B5E34';
+      ctx.lineWidth = 14;
+      ctx.stroke();
+
+      // Baked-dough bottom
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, pizzaRadius - 5, 0, Math.PI * 2);
+      ctx.fillStyle = '#D9B06A';
+      ctx.fill();
+
+      // Flour spots — deterministic positions using simple hash
+      ctx.fillStyle = 'rgba(255, 255, 240, 0.35)';
+      for (let i = 0; i < 28; i++) {
+        const a = (i * 2.399) % (Math.PI * 2);           // golden-angle spread
+        const r = 25 + ((i * 97 + 13) % 130);             // pseudo-random radius
+        const sz = 3 + ((i * 43) % 5);
+        ctx.beginPath();
+        ctx.arc(centerX + Math.cos(a) * r, centerY + Math.sin(a) * r, sz, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Char marks — darker oblong patches
+      ctx.fillStyle = 'rgba(100, 60, 20, 0.25)';
+      for (let i = 0; i < 12; i++) {
+        const a = (i * 3.83 + 1.0) % (Math.PI * 2);
+        const r = 30 + ((i * 71 + 29) % 120);
+        const w = 8 + ((i * 37) % 10);
+        const h = 3 + ((i * 19) % 4);
+        const rot = (i * 1.17) % Math.PI;
+        ctx.save();
+        ctx.translate(centerX + Math.cos(a) * r, centerY + Math.sin(a) * r);
+        ctx.rotate(rot);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, w, h, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // Slice lines on the bottom too
+      ctx.strokeStyle = '#B8844A';
+      ctx.lineWidth = 1.5;
+      for (let i = 0; i < numSlices; i++) {
+        const angle = i * sliceWidth;
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.lineTo(
+          centerX + Math.cos(angle) * pizzaRadius,
+          centerY + Math.sin(angle) * pizzaRadius
+        );
+        ctx.stroke();
+      }
+    };
+
     if (sliceOffsets) {
-      // Wave animation: draw each slice separately with its own rotation
-      const clipRadius = pizzaRadius + 25; // large enough to include crust + stroke
+      // Flip animation: each slice flips in place around its bisector axis
+      const clipRadius = pizzaRadius + 25;
       for (let s = 0; s < numSlices; s++) {
+        const flipAngle = sliceOffsets[s]; // 0 → 2π, full rotation
+        const cosFlip = Math.cos(flipAngle);
+        const scalePerp = Math.abs(cosFlip) || 0.001; // avoid zero
+        const showBack = cosFlip < 0;
+
+        // Bisector of this slice
+        const bisector = s * sliceWidth + sliceWidth / 2;
+
         ctx.save();
 
-        // Rotate this slice around center
+        // Scale perpendicular to bisector to simulate 3-D flip:
+        // 1. origin → center  2. align bisector to X  3. squash Y  4. un-rotate  5. restore origin
         ctx.translate(centerX, centerY);
-        ctx.rotate(sliceOffsets[s]);
+        ctx.rotate(bisector);
+        ctx.scale(1, scalePerp);
+        ctx.rotate(-bisector);
         ctx.translate(-centerX, -centerY);
 
-        // Clip to this slice's wedge (in rotated space = appears rotated in world)
+        // Clip to this slice's wedge
         const startAngle = s * sliceWidth;
         ctx.beginPath();
         ctx.moveTo(centerX, centerY);
@@ -423,7 +494,12 @@ export default function PizzaCanvas() {
         ctx.closePath();
         ctx.clip();
 
-        drawContent();
+        if (showBack) {
+          drawBackFace();
+        } else {
+          drawContent();
+        }
+
         ctx.restore();
       }
     } else {
