@@ -564,7 +564,7 @@ export default function PizzaCanvas() {
         }
         const invMax = maxEdge > 0 ? 1 / maxEdge : 0;
 
-        // 2. Map original colours to neon palette
+        // 2. Map original colours to neon palette based on the actual pizza part
         const neonR = new Uint8ClampedArray(w * h);
         const neonG = new Uint8ClampedArray(w * h);
         const neonB = new Uint8ClampedArray(w * h);
@@ -572,33 +572,72 @@ export default function PizzaCanvas() {
         for (let i = 0; i < w * h; i++) {
           const p = i * 4;
           const r = d[p], g = d[p + 1], b = d[p + 2];
-          // Determine dominant hue for neon colour mapping
+          if (d[p + 3] === 0) continue; // transparent
+
           const mx = Math.max(r, g, b);
           const mn = Math.min(r, g, b);
           const chroma = mx - mn;
+          const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+          const sat = mx > 0 ? chroma / mx : 0;
+
+          // Compute hue 0-6
           let hue = 0;
           if (chroma > 10) {
             if (mx === r) hue = ((g - b) / chroma + 6) % 6;
             else if (mx === g) hue = (b - r) / chroma + 2;
             else hue = (r - g) / chroma + 4;
           }
-          // Map hue ranges to neon tube colours
-          // 0-1 red/orange → hot pink/red (#FF1060)
-          // 1-2 yellow/cheese → warm amber (#FFA020)
-          // 2-3 green → electric green (#20FF60)
-          // 3-5 cyan/blue → electric blue (#20A0FF)
-          // 5-6 magenta → hot pink (#FF20FF)
-          if (hue < 1.2) {
-            neonR[i] = 255; neonG[i] = 16; neonB[i] = 96;   // hot pink
-          } else if (hue < 2.2) {
-            neonR[i] = 255; neonG[i] = 160; neonB[i] = 32;  // amber
-          } else if (hue < 3.2) {
-            neonR[i] = 32;  neonG[i] = 255; neonB[i] = 96;  // green
-          } else if (hue < 5.0) {
-            neonR[i] = 32;  neonG[i] = 160; neonB[i] = 255; // blue
+
+          // Classify pizza regions by colour signature:
+          // Sauce: high saturation red (hue ~0, sat > 0.5, lum 80-160)
+          // Pepperoni/salami: dark saturated red (hue ~0, sat > 0.3, lum < 130)
+          // Crust: warm brown/tan (hue 0.5-1.5, low-med sat, med-high lum)
+          // Cheese: bright yellow-ish (hue 0.7-1.8, lum > 170)
+          // Olives/dark: very low lum
+          // Green peppers/pineapple/greens: hue 1.5-3.5
+          // Mushroom/onion/light toppings: low sat, medium lum
+          // Purple/onion: hue 4.5-6
+
+          let nr: number, ng: number, nb: number;
+
+          if (lum < 35) {
+            // Very dark pixels (olives, dark outlines) → deep blue
+            nr = 20; ng = 40; nb = 200;
+          } else if (sat < 0.15 && lum > 60) {
+            // Low saturation, lighter (mushrooms, mozzarella blobs) → cool white/ice blue
+            nr = 180; ng = 220; nb = 255;
+          } else if (hue < 0.6 && sat > 0.45 && lum < 140) {
+            // Deep saturated red → sauce / pepperoni → neon red
+            nr = 255; ng = 20; nb = 30;
+          } else if (hue < 0.6 && sat > 0.45 && lum >= 140) {
+            // Bright saturated red → sauce highlights → neon coral-red
+            nr = 255; ng = 60; nb = 50;
+          } else if (hue >= 0.6 && hue < 1.3 && lum < 160) {
+            // Orange-brown → crust → warm neon orange
+            nr = 255; ng = 140; nb = 20;
+          } else if (hue >= 0.6 && hue < 1.3 && lum >= 160) {
+            // Light orange/tan → crust highlight → golden neon
+            nr = 255; ng = 200; nb = 50;
+          } else if (hue >= 1.3 && hue < 2.0 && lum > 150) {
+            // Bright yellow → cheese → neon yellow
+            nr = 255; ng = 255; nb = 30;
+          } else if (hue >= 1.3 && hue < 2.0) {
+            // Darker yellow/olive tone → amber neon
+            nr = 255; ng = 180; nb = 10;
+          } else if (hue >= 2.0 && hue < 3.5) {
+            // Greens → peppers, pineapple, basil → electric green
+            nr = 30; ng = 255; nb = 80;
+          } else if (hue >= 3.5 && hue < 5.0) {
+            // Blue range (unlikely but possible) → electric blue
+            nr = 30; ng = 150; nb = 255;
           } else {
-            neonR[i] = 255; neonG[i] = 32;  neonB[i] = 255; // magenta
+            // Magenta/purple range → onion, purple toppings → neon magenta
+            nr = 255; ng = 50; nb = 220;
           }
+
+          neonR[i] = nr;
+          neonG[i] = ng;
+          neonB[i] = nb;
         }
 
         // 3. Build output: dark bg + neon edges + soft glow
