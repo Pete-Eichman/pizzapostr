@@ -178,6 +178,8 @@ const TOPPING_CONFIGS: Record<string, ToppingConfig> = {
     type: 'positioned',
     render: (ctx, x, y) => {
       ctx.fillStyle = '#F0A0B0';
+      ctx.strokeStyle = '#D07888';
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.moveTo(x - 8, y - 5);
       ctx.lineTo(x + 6, y - 7);
@@ -185,10 +187,11 @@ const TOPPING_CONFIGS: Record<string, ToppingConfig> = {
       ctx.lineTo(x - 6, y + 7);
       ctx.closePath();
       ctx.fill();
+      ctx.stroke();
+      // Fat marbling spots
       ctx.fillStyle = '#F8C8D0';
-      ctx.beginPath();
-      ctx.arc(x - 2, y + 1, 2.5, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.fillRect(x - 4, y - 1, 3, 2);
+      ctx.fillRect(x + 1, y + 1, 3, 2);
     },
   },
   chicken: {
@@ -564,15 +567,41 @@ export default function PizzaCanvas() {
         }
         const invMax = maxEdge > 0 ? 1 / maxEdge : 0;
 
-        // 2. Map original colours to neon palette based on the actual pizza part
+        // 2. Map original colours to neon palette based on the actual pizza part.
+        //    For edge pixels, sample the max-saturation neighbour so blended
+        //    transition pixels snap to the actual topping colour.
         const neonR = new Uint8ClampedArray(w * h);
         const neonG = new Uint8ClampedArray(w * h);
         const neonB = new Uint8ClampedArray(w * h);
 
         for (let i = 0; i < w * h; i++) {
           const p = i * 4;
-          const r = d[p], g = d[p + 1], b = d[p + 2];
           if (d[p + 3] === 0) continue; // transparent
+
+          let r = d[p], g = d[p + 1], b = d[p + 2];
+
+          // For edge pixels, use the most-saturated neighbour colour
+          // so antialiased edges inherit the topping colour, not a blend.
+          const eVal = edge[i] * invMax;
+          if (eVal > 0.08) {
+            const iy = Math.floor(i / w);
+            const ix = i % w;
+            let bestSat = -1;
+            for (let dy = -1; dy <= 1; dy++) {
+              for (let dx = -1; dx <= 1; dx++) {
+                const ny = iy + dy, nx = ix + dx;
+                if (ny < 0 || ny >= h || nx < 0 || nx >= w) continue;
+                const np = (ny * w + nx) * 4;
+                const nmx = Math.max(d[np], d[np + 1], d[np + 2]);
+                const nmn = Math.min(d[np], d[np + 1], d[np + 2]);
+                const ns = nmx > 0 ? (nmx - nmn) / nmx : 0;
+                if (ns > bestSat) {
+                  bestSat = ns;
+                  r = d[np]; g = d[np + 1]; b = d[np + 2];
+                }
+              }
+            }
+          }
 
           const mx = Math.max(r, g, b);
           const mn = Math.min(r, g, b);
@@ -580,7 +609,6 @@ export default function PizzaCanvas() {
           const lum = 0.299 * r + 0.587 * g + 0.114 * b;
           const sat = mx > 0 ? chroma / mx : 0;
 
-          // Compute hue 0-6
           let hue = 0;
           if (chroma > 10) {
             if (mx === r) hue = ((g - b) / chroma + 6) % 6;
@@ -588,54 +616,61 @@ export default function PizzaCanvas() {
             else hue = (r - g) / chroma + 4;
           }
 
-          // Classify pizza regions by colour signature:
-          // Sauce: high saturation red (hue ~0, sat > 0.5, lum 80-160)
-          // Pepperoni/salami: dark saturated red (hue ~0, sat > 0.3, lum < 130)
-          // Crust: warm brown/tan (hue 0.5-1.5, low-med sat, med-high lum)
-          // Cheese: bright yellow-ish (hue 0.7-1.8, lum > 170)
-          // Olives/dark: very low lum
-          // Green peppers/pineapple/greens: hue 1.5-3.5
-          // Mushroom/onion/light toppings: low sat, medium lum
-          // Purple/onion: hue 4.5-6
-
           let nr: number, ng: number, nb: number;
 
-          if (lum < 35) {
-            // Very dark pixels (olives, dark outlines) → deep blue
+          // --- Classification (most specific first) ---
+
+          if (lum > 205 && sat < 0.22) {
+            // Very bright, near-white → ranch drizzle, mozzarella → white
+            nr = 235; ng = 240; nb = 255;
+          } else if (lum < 40) {
+            // Very dark → olive outer ring, outlines → deep blue
             nr = 20; ng = 40; nb = 200;
-          } else if (sat < 0.15 && lum > 60) {
-            // Low saturation, lighter (mushrooms, mozzarella blobs) → cool white/ice blue
+          } else if (sat < 0.15 && lum > 55) {
+            // Desaturated, mid-high lum → mushrooms → ice blue
             nr = 180; ng = 220; nb = 255;
-          } else if (hue < 0.35 && sat > 0.45 && lum < 140) {
-            // Deep saturated red → sauce / pepperoni → neon red
+          } else if (Math.abs(r - g) < 20 && b < g * 0.55 && sat > 0.3 && lum < 160) {
+            // Equal R/G with low blue → olive inner fill (#8B8B3A) → teal
+            nr = 30; ng = 180; nb = 200;
+          } else if (hue > 5.3 && lum > 135 && sat < 0.55) {
+            // Pink/rose tones, high luminance → ham → neon hot pink
+            nr = 255; ng = 110; nb = 170;
+          } else if ((hue < 0.45 || hue > 5.7) && sat > 0.40) {
+            // Saturated reds → pepperoni, sauce, bacon → neon red
             nr = 255; ng = 20; nb = 30;
-          } else if (hue < 0.35 && sat > 0.45 && lum >= 140) {
-            // Bright saturated red → sauce highlights → neon red
-            nr = 255; ng = 60; nb = 50;
-          } else if (hue >= 0.35 && hue < 0.6 && sat > 0.3) {
-            // Warm orange-brown → slice lines, crust edges → neon yellow
-            nr = 255; ng = 255; nb = 40;
-          } else if (hue >= 0.6 && hue < 1.3 && lum < 160) {
-            // Orange-brown → crust → warm neon orange
-            nr = 255; ng = 140; nb = 20;
-          } else if (hue >= 0.6 && hue < 1.3 && lum >= 160) {
-            // Light orange/tan → crust highlight → golden neon
-            nr = 255; ng = 200; nb = 50;
-          } else if (hue >= 1.3 && hue < 2.0 && lum > 150) {
-            // Bright yellow → cheese → neon yellow
-            nr = 255; ng = 255; nb = 30;
-          } else if (hue >= 1.3 && hue < 2.0) {
-            // Darker yellow/olive tone → amber neon
-            nr = 255; ng = 180; nb = 10;
-          } else if (hue >= 2.0 && hue < 3.5) {
-            // Greens → peppers, pineapple, basil → electric green
+          } else if (g > r * 0.65 && g > b * 1.4 && hue >= 1.5) {
+            // Green-dominant → peppers, basil → electric green
             nr = 30; ng = 255; nb = 80;
-          } else if (hue >= 3.5 && hue < 5.0) {
-            // Blue range (unlikely but possible) → electric blue
+          } else if (hue >= 0.45 && hue < 0.7 && sat > 0.3 && lum > 120) {
+            // Warm orange, light → slice lines → neon yellow
+            nr = 255; ng = 255; nb = 40;
+          } else if (hue >= 0.45 && hue < 0.7 && sat > 0.3) {
+            // Warm orange, darker → dark crust → orange
+            nr = 255; ng = 120; nb = 20;
+          } else if (hue >= 0.7 && hue < 1.3 && lum >= 170) {
+            // Light golden → cheese, chicken body → golden yellow
+            nr = 255; ng = 230; nb = 50;
+          } else if (hue >= 0.7 && hue < 1.3) {
+            // Orange-brown → crust, grill marks → warm amber
+            nr = 255; ng = 160; nb = 30;
+          } else if (hue >= 1.3 && hue < 1.6 && lum > 140) {
+            // Yellow → cheese highlights → neon yellow
+            nr = 255; ng = 255; nb = 40;
+          } else if (hue >= 1.3 && hue < 1.6) {
+            // Dark yellow → amber
+            nr = 255; ng = 180; nb = 20;
+          } else if (hue >= 1.6 && hue < 3.6) {
+            // Green range → peppers, pineapple → electric green
+            nr = 30; ng = 255; nb = 80;
+          } else if (hue >= 3.6 && hue < 5.0) {
+            // Blue → electric blue
             nr = 30; ng = 150; nb = 255;
+          } else if (hue >= 5.0 && hue <= 5.3) {
+            // Deep magenta/purple → onion → neon magenta
+            nr = 200; ng = 50; nb = 255;
           } else {
-            // Magenta/purple range → onion, purple toppings → neon magenta
-            nr = 255; ng = 50; nb = 220;
+            // Remaining (transition pinks near red) → neon red
+            nr = 255; ng = 20; nb = 30;
           }
 
           neonR[i] = nr;
