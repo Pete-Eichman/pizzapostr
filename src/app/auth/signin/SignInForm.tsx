@@ -44,29 +44,29 @@ export function SignInForm() {
     <>
       <form onSubmit={handleSubmit} className="space-y-4 mb-6">
         {error && (
-          <div className="bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded">
+          <div className="bg-red-50 dark:bg-red-900/30 border-l-4 border-red-500 text-red-700 dark:text-red-400 px-4 py-3 rounded">
             {error}
           </div>
         )}
         <div>
-          <label className="block text-stone-600 text-sm font-medium mb-1.5">Email</label>
+          <label className="block text-stone-700 dark:text-zinc-300 text-sm font-medium mb-1.5">Email</label>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-3 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-400"
+            className="w-full px-4 py-3 border border-stone-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-stone-900 dark:text-zinc-100 placeholder:text-stone-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-amber-500"
             placeholder="your@email.com"
             required
           />
         </div>
 
         <div>
-          <label className="block text-stone-600 text-sm font-medium mb-1.5">Password</label>
+          <label className="block text-stone-700 dark:text-zinc-300 text-sm font-medium mb-1.5">Password</label>
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-3 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-400"
+            className="w-full px-4 py-3 border border-stone-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-stone-900 dark:text-zinc-100 placeholder:text-stone-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-amber-500"
             placeholder="••••••••"
             required
           />
@@ -75,7 +75,7 @@ export function SignInForm() {
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full bg-stone-800 text-white font-medium py-3 rounded-lg hover:bg-stone-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-blue-600 text-white font-medium py-3 rounded-lg hover:bg-blue-700 dark:bg-amber-600 dark:hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLoading ? 'Signing in...' : 'Sign In'}
         </button>
@@ -83,16 +83,16 @@ export function SignInForm() {
 
       <div className="relative mb-6">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-gray-300"></div>
+          <div className="w-full border-t border-stone-200 dark:border-zinc-600"></div>
         </div>
         <div className="relative flex justify-center text-sm">
-          <span className="px-2 bg-white text-gray-500">Or continue with</span>
+          <span className="px-2 bg-white dark:bg-zinc-800 text-stone-500 dark:text-zinc-400">Or continue with</span>
         </div>
       </div>
 
       <button
         onClick={handleGoogleSignIn}
-        className="w-full bg-white border-2 border-gray-300 text-gray-700 font-semibold py-3 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+        className="w-full bg-white dark:bg-zinc-700 border-2 border-stone-300 dark:border-zinc-600 text-stone-700 dark:text-zinc-200 font-semibold py-3 rounded-lg hover:bg-stone-50 dark:hover:bg-zinc-600 transition-colors flex items-center justify-center gap-2"
       >
         <svg className="w-5 h-5" viewBox="0 0 24 24">
           <path

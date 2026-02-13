@@ -1,3 +1,12 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Prevent flash of unstyled content during theme load */
+html {
+  background-color: #f5f5f4;
+}
+html.dark {
+  background-color: #18181b;
+  color-scheme: dark;
+}

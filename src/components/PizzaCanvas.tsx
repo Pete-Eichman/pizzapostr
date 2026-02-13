@@ -236,19 +236,19 @@ export default function PizzaCanvas() {
     <div className="max-w-5xl mx-auto">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Canvas Area */}
-        <div className="lg:col-span-2 bg-white rounded-xl border border-stone-200 p-6 sm:p-8">
-          <h1 className="text-xl font-semibold text-stone-800 mb-6">Build Your Pizza</h1>
+        <div className="lg:col-span-2 bg-white dark:bg-zinc-800 rounded-xl border border-stone-200/80 dark:border-zinc-700 shadow-md dark:shadow-none p-6 sm:p-8">
+          <h1 className="text-xl font-semibold text-stone-900 dark:text-zinc-100 mb-6">Build Your Pizza</h1>
 
           <canvas
             ref={canvasRef}
             width={500}
             height={500}
-            className="border border-stone-200 rounded-lg mx-auto block mb-6 max-w-full"
+            className="border-2 border-stone-200 dark:border-zinc-600 rounded-lg mx-auto block mb-6 max-w-full"
           />
 
           <div className="space-y-5">
             <div>
-              <p className="text-xs font-medium text-stone-400 uppercase tracking-wider mb-3">
+              <p className="text-xs font-medium text-stone-500 dark:text-zinc-400 uppercase tracking-wider mb-3">
                 Toppings
               </p>
               <div className="flex flex-wrap gap-2">
@@ -258,8 +258,8 @@ export default function PizzaCanvas() {
                     onClick={() => toggleTopping(id)}
                     className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
                       selectedToppings.has(id)
-                        ? 'bg-stone-800 text-white'
-                        : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                        ? 'bg-stone-800 text-white dark:bg-amber-600 dark:text-white'
+                        : 'bg-stone-100 text-stone-600 hover:bg-stone-200 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600'
                     }`}
                   >
                     {config.label}
@@ -270,38 +270,38 @@ export default function PizzaCanvas() {
 
             <button
               onClick={() => setShowSaveDialog(true)}
-              className="w-full bg-amber-700 text-white font-medium py-3 px-6 rounded-lg hover:bg-amber-800 transition-colors"
+              className="w-full bg-blue-600 text-white font-medium py-3 px-6 rounded-lg hover:bg-blue-700 dark:bg-amber-600 dark:hover:bg-amber-700 transition-colors"
             >
               Save Pizza
             </button>
           </div>
 
           {saveStatus && (
-            <div className="mt-4 p-3 bg-stone-50 text-stone-600 rounded-lg text-sm border border-stone-200">
+            <div className="mt-4 p-3 bg-stone-50 dark:bg-zinc-700 text-stone-600 dark:text-zinc-300 rounded-lg text-sm border border-stone-200 dark:border-zinc-600">
               {saveStatus}
             </div>
           )}
 
           {showSaveDialog && (
-            <div className="mt-4 p-5 bg-stone-50 rounded-lg border border-stone-200">
-              <h3 className="font-semibold text-stone-800 text-sm mb-3">Name Your Pizza</h3>
+            <div className="mt-4 p-5 bg-stone-50 dark:bg-zinc-700/50 rounded-lg border border-stone-200 dark:border-zinc-600">
+              <h3 className="font-semibold text-stone-900 dark:text-zinc-100 text-sm mb-3">Name Your Pizza</h3>
               <input
                 type="text"
                 value={pizzaName}
                 onChange={(e) => setPizzaName(e.target.value)}
                 placeholder="e.g. Friday Night Special"
-                className="w-full px-3 py-2.5 border border-stone-300 rounded-lg mb-3 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400 focus:border-transparent"
+                className="w-full px-3 py-2.5 border border-stone-300 dark:border-zinc-600 rounded-lg mb-3 text-sm bg-white dark:bg-zinc-700 text-stone-900 dark:text-zinc-100 placeholder:text-stone-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-amber-500 focus:border-transparent"
               />
               <div className="flex gap-2">
                 <button
                   onClick={handleSavePizza}
-                  className="flex-1 bg-stone-800 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-stone-900 transition-colors"
+                  className="flex-1 bg-blue-600 dark:bg-amber-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 dark:hover:bg-amber-700 transition-colors"
                 >
                   Save
                 </button>
                 <button
                   onClick={() => setShowSaveDialog(false)}
-                  className="flex-1 bg-stone-200 text-stone-600 py-2.5 rounded-lg text-sm font-medium hover:bg-stone-300 transition-colors"
+                  className="flex-1 bg-stone-200 dark:bg-zinc-600 text-stone-600 dark:text-zinc-300 py-2.5 rounded-lg text-sm font-medium hover:bg-stone-300 dark:hover:bg-zinc-500 transition-colors"
                 >
                   Cancel
                 </button>
@@ -311,33 +311,33 @@ export default function PizzaCanvas() {
         </div>
 
         {/* Saved Pizzas Sidebar */}
-        <div className="bg-white rounded-xl border border-stone-200 p-6">
-          <h2 className="text-lg font-semibold text-stone-800 mb-4">Saved Pizzas</h2>
+        <div className="bg-white dark:bg-zinc-800 rounded-xl border border-stone-200/80 dark:border-zinc-700 shadow-md dark:shadow-none p-6">
+          <h2 className="text-lg font-semibold text-stone-900 dark:text-zinc-100 mb-4">Saved Pizzas</h2>
 
           {savedPizzas.length === 0 ? (
-            <p className="text-stone-400 text-sm text-center py-8">No saved pizzas yet</p>
+            <p className="text-stone-500 dark:text-zinc-400 text-sm text-center py-8">No saved pizzas yet</p>
           ) : (
             <div className="space-y-2">
               {savedPizzas.map((pizza) => (
                 <div
                   key={pizza.id}
-                  className="p-3 rounded-lg border border-stone-100 hover:border-stone-200 transition-colors"
+                  className="p-3 rounded-lg bg-stone-50 dark:bg-zinc-700/50 border border-stone-200 dark:border-zinc-600 hover:border-stone-300 dark:hover:border-zinc-500 transition-colors"
                 >
                   <div className="flex justify-between items-start mb-1">
-                    <h3 className="font-medium text-stone-800 text-sm">{pizza.name}</h3>
+                    <h3 className="font-medium text-stone-900 dark:text-zinc-100 text-sm">{pizza.name}</h3>
                     <button
                       onClick={() => handleDeletePizza(pizza.id)}
-                      className="text-stone-300 hover:text-red-400 text-xs transition-colors"
+                      className="text-stone-400 dark:text-zinc-500 hover:text-red-500 dark:hover:text-red-400 text-xs transition-colors"
                     >
                       ✕
                     </button>
                   </div>
-                  <p className="text-xs text-stone-400 mb-2">
+                  <p className="text-xs text-stone-500 dark:text-zinc-400 mb-2">
                     {pizza.toppings.join(', ') || 'Plain cheese'}
                   </p>
                   <button
                     onClick={() => handleLoadPizza(pizza)}
-                    className="w-full bg-stone-100 text-stone-600 py-1.5 rounded text-xs font-medium hover:bg-stone-200 transition-colors"
+                    className="w-full bg-stone-100 dark:bg-zinc-700 text-stone-600 dark:text-zinc-300 py-1.5 rounded text-xs font-medium hover:bg-stone-200 dark:hover:bg-zinc-600 transition-colors"
                   >
                     Load
                   </button>
