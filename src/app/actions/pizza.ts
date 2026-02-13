@@ -8,7 +8,7 @@ import { z } from 'zod';
 const pizzaSchema = z.object({
   name: z.string().min(1).max(50),
   toppings: z.array(z.string()).max(4),
-  animation: z.enum(['cw', 'ccw']).nullable().optional(),
+  animation: z.enum(['cw', 'ccw', 'wave']).nullable().optional(),
 });
 
 export async function getUserPizzas() {

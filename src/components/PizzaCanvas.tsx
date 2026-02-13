@@ -3,7 +3,7 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { savePizza, getUserPizzas, deletePizza } from '@/app/actions/pizza';
 
-type AnimationType = 'cw' | 'ccw' | null;
+type AnimationType = 'cw' | 'ccw' | 'wave' | null;
 
 interface SavedPizza {
   id: string;
@@ -47,6 +47,29 @@ function distributePositions(count: number): number[][] {
 }
 
 const MAX_TOPPINGS = 4;
+
+// Easing function for smooth slice rotation
+function easeInOutCubic(t: number): number {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+// Calculate per-slice rotation offsets for the wave animation.
+// Each slice does a full 360° rotation, staggered so the next slice
+// begins when the previous is ~25% through its rotation.
+function getWaveOffsets(time: number): number[] {
+  const sliceDuration = 0.8; // seconds for one slice to complete its rotation
+  const stagger = 0.25 * sliceDuration; // delay between successive slices
+  const cycleDuration = sliceDuration + 7 * stagger; // full cycle for all 8 slices
+  const t = ((time % cycleDuration) + cycleDuration) % cycleDuration; // positive modulo
+
+  const offsets: number[] = [];
+  for (let s = 0; s < 8; s++) {
+    const sliceStart = s * stagger;
+    const progress = Math.max(0, Math.min(1, (t - sliceStart) / sliceDuration));
+    offsets.push(easeInOutCubic(progress) * Math.PI * 2);
+  }
+  return offsets;
+}
 
 interface PositionedTopping {
   label: string;
@@ -291,104 +314,127 @@ export default function PizzaCanvas() {
     }
   };
 
-  const drawPizza = useCallback((ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, rotation = 0) => {
+  const drawPizza = useCallback((ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, rotation = 0, sliceOffsets?: number[]) => {
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
     const pizzaRadius = 180;
     const numSlices = 8;
+    const sliceWidth = (Math.PI * 2) / numSlices;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Apply rotation around center
-    ctx.save();
-    ctx.translate(centerX, centerY);
-    ctx.rotate(rotation);
-    ctx.translate(-centerX, -centerY);
-
-    // Draw crust
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, pizzaRadius + 10, 0, Math.PI * 2);
-    ctx.fillStyle = '#D4A55A';
-    ctx.fill();
-    ctx.strokeStyle = '#8B5E34';
-    ctx.lineWidth = 14;
-    ctx.stroke();
-
-    // Draw sauce
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, pizzaRadius - 5, 0, Math.PI * 2);
-    ctx.fillStyle = '#C43E2A';
-    ctx.fill();
-
-    // Draw cheese
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, pizzaRadius - 10, 0, Math.PI * 2);
-    ctx.fillStyle = '#EFC050';
-    ctx.fill();
-
-    // Draw toppings with dynamic density
-    const toppingArray = Array.from(selectedToppings);
-    const minR = 40;
-    const maxR = 155;
-    const sliceWidth = (Math.PI * 2) / numSlices;
-
-    // Separate positioned vs overlay toppings
-    const positionedToppings = toppingArray.filter(
-      (t) => TOPPING_CONFIGS[t]?.type === 'positioned'
-    );
-    const overlayToppings = toppingArray.filter(
-      (t) => TOPPING_CONFIGS[t]?.type === 'overlay'
-    );
-
-    // Dynamic density: fewer positioned toppings = more items per slice per topping
-    const positionSets = distributePositions(positionedToppings.length);
-
-    // Draw positioned toppings
-    positionedToppings.forEach((topping, tIdx) => {
-      const config = TOPPING_CONFIGS[topping];
-      if (!config || config.type !== 'positioned') return;
-      const positions = positionSets[tIdx] ?? [];
-
-      for (let sliceIndex = 0; sliceIndex < numSlices; sliceIndex++) {
-        const sliceStartAngle = (sliceIndex * Math.PI * 2) / numSlices;
-
-        positions.forEach((posIndex) => {
-          const pos = SLICE_POSITIONS[posIndex];
-          const angle = sliceStartAngle + pos.af * sliceWidth;
-          const radius = minR + pos.rf * (maxR - minR);
-          const x = centerX + Math.cos(angle) * radius;
-          const y = centerY + Math.sin(angle) * radius;
-          config.render(ctx, x, y);
-        });
-      }
-    });
-
-    // Draw overlay toppings (e.g. ranch drizzle) on top
-    overlayToppings.forEach((topping) => {
-      const config = TOPPING_CONFIGS[topping];
-      if (!config || config.type !== 'overlay') return;
-
-      for (let sliceIndex = 0; sliceIndex < numSlices; sliceIndex++) {
-        const sliceStartAngle = (sliceIndex * Math.PI * 2) / numSlices;
-        config.renderSlice(ctx, centerX, centerY, sliceStartAngle, sliceWidth, minR, maxR);
-      }
-    });
-
-    // Draw slice lines
-    ctx.strokeStyle = '#C8874A';
-    ctx.lineWidth = 1.5;
-    for (let i = 0; i < numSlices; i++) {
-      const angle = (i * Math.PI * 2) / numSlices;
+    // --- Helper: draw full pizza content (crust, sauce, cheese, toppings, slice lines) ---
+    const drawContent = () => {
+      // Draw crust
       ctx.beginPath();
-      ctx.moveTo(centerX, centerY);
-      ctx.lineTo(
-        centerX + Math.cos(angle) * pizzaRadius,
-        centerY + Math.sin(angle) * pizzaRadius
-      );
+      ctx.arc(centerX, centerY, pizzaRadius + 10, 0, Math.PI * 2);
+      ctx.fillStyle = '#D4A55A';
+      ctx.fill();
+      ctx.strokeStyle = '#8B5E34';
+      ctx.lineWidth = 14;
       ctx.stroke();
-    }
 
-    ctx.restore();
+      // Draw sauce
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, pizzaRadius - 5, 0, Math.PI * 2);
+      ctx.fillStyle = '#C43E2A';
+      ctx.fill();
+
+      // Draw cheese
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, pizzaRadius - 10, 0, Math.PI * 2);
+      ctx.fillStyle = '#EFC050';
+      ctx.fill();
+
+      // Draw toppings with dynamic density
+      const toppingArray = Array.from(selectedToppings);
+      const minR = 40;
+      const maxR = 155;
+
+      const positionedToppings = toppingArray.filter(
+        (t) => TOPPING_CONFIGS[t]?.type === 'positioned'
+      );
+      const overlayToppings = toppingArray.filter(
+        (t) => TOPPING_CONFIGS[t]?.type === 'overlay'
+      );
+
+      const positionSets = distributePositions(positionedToppings.length);
+
+      positionedToppings.forEach((topping, tIdx) => {
+        const config = TOPPING_CONFIGS[topping];
+        if (!config || config.type !== 'positioned') return;
+        const positions = positionSets[tIdx] ?? [];
+
+        for (let sliceIndex = 0; sliceIndex < numSlices; sliceIndex++) {
+          const sliceStartAngle = sliceIndex * sliceWidth;
+
+          positions.forEach((posIndex) => {
+            const pos = SLICE_POSITIONS[posIndex];
+            const angle = sliceStartAngle + pos.af * sliceWidth;
+            const radius = minR + pos.rf * (maxR - minR);
+            const x = centerX + Math.cos(angle) * radius;
+            const y = centerY + Math.sin(angle) * radius;
+            config.render(ctx, x, y);
+          });
+        }
+      });
+
+      overlayToppings.forEach((topping) => {
+        const config = TOPPING_CONFIGS[topping];
+        if (!config || config.type !== 'overlay') return;
+
+        for (let sliceIndex = 0; sliceIndex < numSlices; sliceIndex++) {
+          const sliceStartAngle = sliceIndex * sliceWidth;
+          config.renderSlice(ctx, centerX, centerY, sliceStartAngle, sliceWidth, minR, maxR);
+        }
+      });
+
+      // Draw slice lines
+      ctx.strokeStyle = '#C8874A';
+      ctx.lineWidth = 1.5;
+      for (let i = 0; i < numSlices; i++) {
+        const angle = i * sliceWidth;
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.lineTo(
+          centerX + Math.cos(angle) * pizzaRadius,
+          centerY + Math.sin(angle) * pizzaRadius
+        );
+        ctx.stroke();
+      }
+    };
+
+    if (sliceOffsets) {
+      // Wave animation: draw each slice separately with its own rotation
+      const clipRadius = pizzaRadius + 25; // large enough to include crust + stroke
+      for (let s = 0; s < numSlices; s++) {
+        ctx.save();
+
+        // Rotate this slice around center
+        ctx.translate(centerX, centerY);
+        ctx.rotate(sliceOffsets[s]);
+        ctx.translate(-centerX, -centerY);
+
+        // Clip to this slice's wedge (in rotated space = appears rotated in world)
+        const startAngle = s * sliceWidth;
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.arc(centerX, centerY, clipRadius, startAngle, startAngle + sliceWidth);
+        ctx.closePath();
+        ctx.clip();
+
+        drawContent();
+        ctx.restore();
+      }
+    } else {
+      // Global rotation (static, CW, CCW)
+      ctx.save();
+      ctx.translate(centerX, centerY);
+      ctx.rotate(rotation);
+      ctx.translate(-centerX, -centerY);
+      drawContent();
+      ctx.restore();
+    }
   }, [selectedToppings]);
 
   // Animation loop
@@ -405,6 +451,19 @@ export default function PizzaCanvas() {
       return;
     }
 
+    if (animation === 'wave') {
+      const startTime = performance.now() / 1000;
+      const animate = () => {
+        const elapsed = performance.now() / 1000 - startTime;
+        const offsets = getWaveOffsets(elapsed);
+        drawPizza(ctx, canvas, 0, offsets);
+        rafRef.current = requestAnimationFrame(animate);
+      };
+      rafRef.current = requestAnimationFrame(animate);
+      return () => cancelAnimationFrame(rafRef.current);
+    }
+
+    // CW / CCW
     const speed = animation === 'cw' ? 0.008 : -0.008;
 
     const animate = () => {
@@ -465,7 +524,7 @@ export default function PizzaCanvas() {
     }
   };
 
-  const toggleAnimation = (type: 'cw' | 'ccw') => {
+  const toggleAnimation = (type: 'cw' | 'ccw' | 'wave') => {
     setAnimation((prev) => (prev === type ? null : type));
   };
 
@@ -478,22 +537,38 @@ export default function PizzaCanvas() {
       const { encode } = await import('modern-gif');
 
       const frames: Array<{ data: CanvasImageSource; delay: number }> = [];
-      const totalFrames = 60;
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      const speed = animation === 'cw' ? (Math.PI * 2) / totalFrames : -(Math.PI * 2) / totalFrames;
-
-      // Create an offscreen canvas for each frame
-      for (let i = 0; i < totalFrames; i++) {
-        const angle = speed * i;
-        drawPizza(ctx, canvas, angle);
-        const offscreen = document.createElement('canvas');
-        offscreen.width = canvas.width;
-        offscreen.height = canvas.height;
-        const offCtx = offscreen.getContext('2d')!;
-        offCtx.drawImage(canvas, 0, 0);
-        frames.push({ data: offscreen, delay: 33 }); // ~30fps
+      if (animation === 'wave') {
+        // Wave: capture one full cycle
+        const sliceDuration = 0.8;
+        const stagger = 0.25 * sliceDuration;
+        const cycleDuration = sliceDuration + 7 * stagger;
+        const totalFrames = 80; // more frames for the longer cycle
+        for (let i = 0; i < totalFrames; i++) {
+          const t = (i / totalFrames) * cycleDuration;
+          const offsets = getWaveOffsets(t);
+          drawPizza(ctx, canvas, 0, offsets);
+          const offscreen = document.createElement('canvas');
+          offscreen.width = canvas.width;
+          offscreen.height = canvas.height;
+          offscreen.getContext('2d')!.drawImage(canvas, 0, 0);
+          frames.push({ data: offscreen, delay: 33 });
+        }
+      } else {
+        // CW/CCW: one full rotation
+        const totalFrames = 60;
+        const speed = animation === 'cw' ? (Math.PI * 2) / totalFrames : -(Math.PI * 2) / totalFrames;
+        for (let i = 0; i < totalFrames; i++) {
+          const angle = speed * i;
+          drawPizza(ctx, canvas, angle);
+          const offscreen = document.createElement('canvas');
+          offscreen.width = canvas.width;
+          offscreen.height = canvas.height;
+          offscreen.getContext('2d')!.drawImage(canvas, 0, 0);
+          frames.push({ data: offscreen, delay: 33 });
+        }
       }
 
       // Restore current animation frame
@@ -599,6 +674,16 @@ export default function PizzaCanvas() {
                   }`}
                 >
                   Rotate CCW ↺
+                </button>
+                <button
+                  onClick={() => toggleAnimation('wave')}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                    animation === 'wave'
+                      ? 'bg-stone-800 text-white dark:bg-amber-600 dark:text-white'
+                      : 'bg-stone-100 text-stone-600 hover:bg-stone-200 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600'
+                  }`}
+                >
+                  Wave 🍕
                 </button>
               </div>
             </div>

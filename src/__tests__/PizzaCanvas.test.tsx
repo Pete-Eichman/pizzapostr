@@ -27,6 +27,7 @@ HTMLCanvasElement.prototype.getContext = vi.fn().mockReturnValue({
   restore: vi.fn(),
   translate: vi.fn(),
   rotate: vi.fn(),
+  clip: vi.fn(),
   getImageData: vi.fn().mockReturnValue({ data: new Uint8ClampedArray(500 * 500 * 4) }),
   fillStyle: '',
   strokeStyle: '',
@@ -90,6 +91,7 @@ describe('PizzaCanvas', () => {
     render(<PizzaCanvas />);
     expect(screen.getByText('Rotate CW ↻')).toBeInTheDocument();
     expect(screen.getByText('Rotate CCW ↺')).toBeInTheDocument();
+    expect(screen.getByText('Wave 🍕')).toBeInTheDocument();
   });
 
   it('toggles animation selection', async () => {
