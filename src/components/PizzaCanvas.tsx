@@ -237,30 +237,26 @@ const TOPPING_CONFIGS: Record<string, ToppingConfig> = {
     label: 'Ranch',
     type: 'overlay',
     renderSlice: (ctx, cx, cy, startAngle, sliceWidth, innerR, outerR) => {
-      // Zig-zag drizzle across the slice (like squeezing a bottle back and forth)
+      // Single zig-zag drizzle line across and down the slice
       ctx.strokeStyle = '#FAF8F0';
-      ctx.lineWidth = 2.2;
+      ctx.lineWidth = 2.5;
       ctx.lineCap = 'round';
       ctx.globalAlpha = 0.8;
 
-      // Draw 2 zig-zag drizzle lines per slice
-      const offsets = [0.15, -0.1];
-      offsets.forEach((offset) => {
-        ctx.beginPath();
-        const steps = 20;
-        for (let i = 0; i <= steps; i++) {
-          const t = i / steps;
-          const r = innerR * 0.6 + t * (outerR * 0.92 - innerR * 0.6);
-          // Zig-zag: sweep back and forth across the slice width
-          const zigzag = Math.sin(t * Math.PI * 5 + offset * 10) * 0.35;
-          const a = startAngle + (0.5 + zigzag + offset * 0.15) * sliceWidth;
-          const px = cx + Math.cos(a) * r;
-          const py = cy + Math.sin(a) * r;
-          if (i === 0) ctx.moveTo(px, py);
-          else ctx.lineTo(px, py);
-        }
-        ctx.stroke();
-      });
+      ctx.beginPath();
+      const steps = 24;
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        const r = innerR * 0.5 + t * (outerR * 0.93 - innerR * 0.5);
+        // Zig-zag: alternate between left and right sides of the slice
+        const zigzag = (i % 2 === 0 ? -0.3 : 0.3);
+        const a = startAngle + (0.5 + zigzag) * sliceWidth;
+        const px = cx + Math.cos(a) * r;
+        const py = cy + Math.sin(a) * r;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
       ctx.globalAlpha = 1.0;
       ctx.lineCap = 'butt';
     },
