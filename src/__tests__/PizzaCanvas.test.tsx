@@ -27,6 +27,7 @@ HTMLCanvasElement.prototype.getContext = vi.fn().mockReturnValue({
   strokeStyle: '',
   lineWidth: 0,
   globalAlpha: 1,
+  lineCap: 'butt',
 });
 
 import { savePizza, getUserPizzas, deletePizza } from '@/app/actions/pizza';

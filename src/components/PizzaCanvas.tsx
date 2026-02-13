@@ -237,20 +237,23 @@ const TOPPING_CONFIGS: Record<string, ToppingConfig> = {
     label: 'Ranch',
     type: 'overlay',
     renderSlice: (ctx, cx, cy, startAngle, sliceWidth, innerR, outerR) => {
-      // Drizzle lines across the slice
+      // Zig-zag drizzle across the slice (like squeezing a bottle back and forth)
       ctx.strokeStyle = '#FAF8F0';
-      ctx.lineWidth = 1.8;
-      ctx.globalAlpha = 0.75;
-      const fractions = [0.2, 0.4, 0.6, 0.8];
-      fractions.forEach((f) => {
-        const angle = startAngle + f * sliceWidth;
+      ctx.lineWidth = 2.2;
+      ctx.lineCap = 'round';
+      ctx.globalAlpha = 0.8;
+
+      // Draw 2 zig-zag drizzle lines per slice
+      const offsets = [0.15, -0.1];
+      offsets.forEach((offset) => {
         ctx.beginPath();
-        const steps = 10;
+        const steps = 20;
         for (let i = 0; i <= steps; i++) {
           const t = i / steps;
-          const r = innerR + t * (outerR - innerR);
-          const wobble = Math.sin(t * Math.PI * 3 + f * 7) * 0.04;
-          const a = angle + wobble;
+          const r = innerR * 0.6 + t * (outerR * 0.92 - innerR * 0.6);
+          // Zig-zag: sweep back and forth across the slice width
+          const zigzag = Math.sin(t * Math.PI * 5 + offset * 10) * 0.35;
+          const a = startAngle + (0.5 + zigzag + offset * 0.15) * sliceWidth;
           const px = cx + Math.cos(a) * r;
           const py = cy + Math.sin(a) * r;
           if (i === 0) ctx.moveTo(px, py);
@@ -259,6 +262,7 @@ const TOPPING_CONFIGS: Record<string, ToppingConfig> = {
         ctx.stroke();
       });
       ctx.globalAlpha = 1.0;
+      ctx.lineCap = 'butt';
     },
   },
 };
