@@ -8,7 +8,7 @@ A full-stack pizza creation and sharing app built with Next.js. Users sign in, b
 - **Styling:** Tailwind CSS with dark mode support
 - **Rendering:** Canvas API (deterministic topping placement)
 - **Backend:** Next.js Server Actions with Zod validation
-- **Database:** SQLite (dev) via Prisma ORM
+- **Database:** PostgreSQL via Prisma ORM
 - **Auth:** NextAuth v5 (credentials + Google OAuth)
 - **Unit Tests:** Vitest + React Testing Library
 - **E2E Tests:** Cypress
@@ -42,7 +42,7 @@ npm install
 Create a `.env` file in the project root:
 
 ```env
-DATABASE_URL="file:./dev.db"
+DATABASE_URL="postgresql://user:password@localhost:5432/pizzapostr"
 NEXTAUTH_SECRET="<generate with: openssl rand -base64 32>"
 NEXTAUTH_URL="http://localhost:3000"
 
@@ -161,13 +161,26 @@ npm run db:studio        # Open Prisma Studio
 npm run db:generate      # Generate Prisma Client
 ```
 
+## Deployment
+
+The app is ready to deploy on **Vercel** with a hosted PostgreSQL database.
+
+1. Push the repo to GitHub
+2. Import the project at [vercel.com/new](https://vercel.com/new)
+3. Provision a PostgreSQL database ([Neon](https://neon.tech), [Supabase](https://supabase.com), or [Railway](https://railway.app) all have free tiers)
+4. Set these environment variables in the Vercel dashboard:
+   - `DATABASE_URL` — your Postgres connection string
+   - `NEXTAUTH_SECRET` — generate with `openssl rand -base64 32`
+   - `NEXTAUTH_URL` — your Vercel production URL (e.g. `https://pizzapostr.vercel.app`)
+   - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` (optional)
+5. Deploy — Prisma migrations run automatically during the build step
+
 ## Potential Improvements
 
-- Swap SQLite for PostgreSQL for production deployment
 - Public pizza sharing with unique URLs
+- Pizza animation builder with GIF export
 - Gallery of community creations
 - Additional toppings, crust types, and sauce options
-- Pizza image export (PNG/GIF)
 - Drag-and-drop topping placement
 - Social features (likes, comments)
 
