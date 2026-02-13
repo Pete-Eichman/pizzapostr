@@ -350,9 +350,16 @@ export default function PizzaCanvas() {
 
       // Draw cheese
       ctx.beginPath();
-      ctx.arc(centerX, centerY, pizzaRadius - 10, 0, Math.PI * 2);
+      ctx.arc(centerX, centerY, pizzaRadius - 15, 0, Math.PI * 2);
       ctx.fillStyle = '#EFC050';
       ctx.fill();
+
+      // Cheese ring border (bright yellow edge between sauce and cheese)
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, pizzaRadius - 15, 0, Math.PI * 2);
+      ctx.strokeStyle = '#F5D060';
+      ctx.lineWidth = 3;
+      ctx.stroke();
 
       // Draw toppings with dynamic density
       const toppingArray = Array.from(selectedToppings);
@@ -580,10 +587,20 @@ export default function PizzaCanvas() {
 
           let r = d[p], g = d[p + 1], b = d[p + 2];
 
+          // Check if the ORIGINAL pixel is near-white before neighbor sampling.
+          // Ranch drizzle blended over cheese produces high-lum low-sat pixels
+          // that should stay white — neighbor sampling would override them.
+          const origLum = 0.299 * r + 0.587 * g + 0.114 * b;
+          const origMx = Math.max(r, g, b);
+          const origMn = Math.min(r, g, b);
+          const origSat = origMx > 0 ? (origMx - origMn) / origMx : 0;
+          const isWhitish = origLum > 195 && origSat < 0.25;
+
           // For edge pixels, use the most-saturated neighbour colour
           // so antialiased edges inherit the topping colour, not a blend.
+          // Skip this for near-white pixels (ranch, mozzarella).
           const eVal = edge[i] * invMax;
-          if (eVal > 0.08) {
+          if (eVal > 0.08 && !isWhitish) {
             const iy = Math.floor(i / w);
             const ix = i % w;
             let bestSat = -1;
