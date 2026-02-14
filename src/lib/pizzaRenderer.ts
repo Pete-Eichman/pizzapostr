@@ -368,6 +368,17 @@ function applySliceTransform(
 
 // ── Filters ──────────────────────────────────────────────────────────────────
 
+function applyNegativeFilter(ctx: CanvasRenderingContext2D, w: number, h: number) {
+  const imageData = ctx.getImageData(0, 0, w, h);
+  const d = imageData.data;
+  for (let i = 0; i < d.length; i += 4) {
+    d[i] = 255 - d[i];
+    d[i + 1] = 255 - d[i + 1];
+    d[i + 2] = 255 - d[i + 2];
+  }
+  ctx.putImageData(imageData, 0, 0);
+}
+
 function applyMonoFilter(ctx: CanvasRenderingContext2D, w: number, h: number) {
   const imageData = ctx.getImageData(0, 0, w, h);
   const d = imageData.data;
@@ -594,5 +605,7 @@ export function drawPizza(
     applyMonoFilter(ctx, canvas.width, canvas.height);
   } else if (activeFilter === 'neon' && zoneCtx) {
     applyNeonFilter(ctx, canvas, zoneCtx);
+  } else if (activeFilter === 'negative') {
+    applyNegativeFilter(ctx, canvas.width, canvas.height);
   }
 }

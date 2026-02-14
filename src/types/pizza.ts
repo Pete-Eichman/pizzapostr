@@ -1,5 +1,5 @@
 export type AnimationType = 'cw' | 'ccw' | 'wave' | 'wave-ccw' | 'flip' | null;
-export type FilterType = 'mono' | 'neon' | null;
+export type FilterType = 'mono' | 'neon' | 'negative' | null;
 export type PizzaMode = 'whole' | 'half';
 
 export interface SavedPizza {

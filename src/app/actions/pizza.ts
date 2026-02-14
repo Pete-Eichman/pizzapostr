@@ -12,7 +12,7 @@ const pizzaSchema = z.object({
   leftToppings: z.array(z.string()).max(4).optional().default([]),
   rightToppings: z.array(z.string()).max(4).optional().default([]),
   animation: z.enum(['cw', 'ccw', 'wave', 'wave-ccw', 'flip']).nullable().optional(),
-  filter: z.enum(['mono', 'neon']).nullable().optional(),
+  filter: z.enum(['mono', 'neon', 'negative']).nullable().optional(),
 });
 
 export async function getUserPizzas() {

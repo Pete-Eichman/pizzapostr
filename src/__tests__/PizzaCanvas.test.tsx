@@ -105,6 +105,7 @@ describe('PizzaCanvas', () => {
     render(<PizzaCanvas />);
     expect(screen.getByText('Monochrome 🖤')).toBeInTheDocument();
     expect(screen.getByText('Neon 💜')).toBeInTheDocument();
+    expect(screen.getByText('Negative 🔲')).toBeInTheDocument();
   });
 
   it('toggles filter selection', async () => {
@@ -120,6 +121,21 @@ describe('PizzaCanvas', () => {
     // Click again to deselect
     await user.click(monoBtn);
     expect(monoBtn.className).toContain('bg-stone-100');
+  });
+
+  it('toggles negative filter selection', async () => {
+    const user = userEvent.setup();
+    render(<PizzaCanvas />);
+
+    const negBtn = screen.getByText('Negative 🔲');
+    expect(negBtn.className).toContain('bg-stone-100');
+
+    await user.click(negBtn);
+    expect(negBtn.className).toContain('bg-stone-800');
+
+    // Selecting another filter deselects negative
+    await user.click(screen.getByText('Monochrome 🖤'));
+    expect(negBtn.className).toContain('bg-stone-100');
   });
 
   it('toggles animation selection', async () => {
@@ -335,6 +351,20 @@ describe('PizzaCanvas', () => {
 
     await waitFor(() => {
       expect(screen.getByText('pepperoni · 🪙')).toBeInTheDocument();
+    });
+  });
+
+  it('displays negative filter icon in saved pizza summary', async () => {
+    vi.mocked(getUserPizzas).mockResolvedValue({
+      pizzas: [
+        { id: '1', name: 'Inverted', toppings: ['pepperoni'], mode: 'whole', leftToppings: [], rightToppings: [], animation: null, filter: 'negative', createdAt: new Date() },
+      ],
+    });
+
+    render(<PizzaCanvas />);
+
+    await waitFor(() => {
+      expect(screen.getByText('pepperoni · 🔲')).toBeInTheDocument();
     });
   });
 

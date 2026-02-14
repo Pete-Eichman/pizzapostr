@@ -427,6 +427,9 @@ export default function PizzaCanvas() {
                 <ToggleButton active={filter === 'neon'} onClick={() => toggleFilter('neon')}>
                   Neon 💜
                 </ToggleButton>
+                <ToggleButton active={filter === 'negative'} onClick={() => toggleFilter('negative')}>
+                  Negative 🔲
+                </ToggleButton>
               </div>
             </div>
 
@@ -509,7 +512,7 @@ export default function PizzaCanvas() {
                   <p className="text-xs text-stone-500 dark:text-zinc-400 mb-2">
                     {describePizzaToppings(pizza)}
                     {pizza.animation && ` · ${pizza.animation === 'cw' ? '↻' : pizza.animation === 'ccw' ? '↺' : pizza.animation === 'flip' ? '🪙' : '🍕'}`}
-                    {pizza.filter && ` · ${pizza.filter === 'mono' ? '🖤' : '💜'}`}
+                    {pizza.filter && ` · ${pizza.filter === 'mono' ? '🖤' : pizza.filter === 'neon' ? '💜' : '🔲'}`}
                   </p>
                   <button
                     onClick={() => handleLoadPizza(pizza)}
