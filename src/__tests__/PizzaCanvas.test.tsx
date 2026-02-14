@@ -98,6 +98,7 @@ describe('PizzaCanvas', () => {
     expect(screen.getByText('Rotate CCW ↺')).toBeInTheDocument();
     expect(screen.getByText('Wave CW 🍕')).toBeInTheDocument();
     expect(screen.getByText('Wave CCW 🍕')).toBeInTheDocument();
+    expect(screen.getByText('Flip 🪙')).toBeInTheDocument();
   });
 
   it('renders visual effects buttons', () => {
@@ -150,6 +151,21 @@ describe('PizzaCanvas', () => {
     // Click again to deselect
     await user.click(cwBtn);
     expect(cwBtn.className).toContain('bg-stone-100');
+  });
+
+  it('toggles flip animation selection', async () => {
+    const user = userEvent.setup();
+    render(<PizzaCanvas />);
+
+    const flipBtn = screen.getByText('Flip 🪙');
+    expect(flipBtn.className).toContain('bg-stone-100');
+
+    await user.click(flipBtn);
+    expect(flipBtn.className).toContain('bg-stone-800');
+
+    // Selecting another animation deselects flip
+    await user.click(screen.getByText('Rotate CW ↻'));
+    expect(flipBtn.className).toContain('bg-stone-100');
   });
 
   it('shows Export GIF button only when animation is active', async () => {
@@ -321,6 +337,20 @@ describe('PizzaCanvas', () => {
     await waitFor(() => {
       expect(screen.getByText('Plain cheese')).toBeInTheDocument();
       expect(screen.getByText('pepperoni, olive · ↻')).toBeInTheDocument();
+    });
+  });
+
+  it('displays flip animation icon in saved pizza summary', async () => {
+    vi.mocked(getUserPizzas).mockResolvedValue({
+      pizzas: [
+        { id: '1', name: 'Flipper', toppings: ['pepperoni'], mode: 'whole', leftToppings: [], rightToppings: [], animation: 'flip', filter: null, createdAt: new Date() },
+      ],
+    });
+
+    render(<PizzaCanvas />);
+
+    await waitFor(() => {
+      expect(screen.getByText('pepperoni · 🪙')).toBeInTheDocument();
     });
   });
 

@@ -517,6 +517,7 @@ export function drawPizza(
   activeFilter?: FilterType,
   mode: PizzaMode = 'whole',
   halfInfo?: HalfPizzaInfo,
+  flipAngle?: number,
 ) {
   const centerX = canvas.width / 2;
   const centerY = canvas.height / 2;
@@ -556,6 +557,30 @@ export function drawPizza(
         else drawZoneContent(zoneCtx, centerX, centerY, selectedToppings, mode, halfInfo);
         zoneCtx.restore();
       }
+    }
+  } else if (flipAngle !== undefined) {
+    // Whole-pizza coin-flip: scale vertically by |cos(flipAngle)|,
+    // show back face when cos < 0.
+    const cosFlip = Math.cos(flipAngle);
+    const showBack = cosFlip < 0;
+    const scaleY = Math.abs(cosFlip) || 0.001;
+
+    ctx.save();
+    ctx.translate(centerX, centerY);
+    ctx.scale(1, scaleY);
+    ctx.translate(-centerX, -centerY);
+    if (showBack) drawBackFace(ctx, centerX, centerY);
+    else drawContent(ctx, centerX, centerY, selectedToppings, mode, halfInfo);
+    ctx.restore();
+
+    if (zoneCtx) {
+      zoneCtx.save();
+      zoneCtx.translate(centerX, centerY);
+      zoneCtx.scale(1, scaleY);
+      zoneCtx.translate(-centerX, -centerY);
+      if (showBack) drawZoneBackFace(zoneCtx, centerX, centerY);
+      else drawZoneContent(zoneCtx, centerX, centerY, selectedToppings, mode, halfInfo);
+      zoneCtx.restore();
     }
   } else {
     ctx.save();

@@ -4,6 +4,34 @@ export function easeInOutCubic(t: number): number {
 }
 
 /**
+ * Calculate the flip angle for the whole-pizza coin-flip animation.
+ *
+ * One full cycle: face-up → flip to face-down (pause) → flip back to
+ * face-up (pause). Each individual flip uses cubic easing for a natural
+ * toss-and-land feel.
+ */
+export function getFlipAngle(time: number): number {
+  const flipDuration = 0.7;
+  const pauseDuration = 0.35;
+  const cycleDuration = 2 * flipDuration + 2 * pauseDuration;
+  const t = ((time % cycleDuration) + cycleDuration) % cycleDuration;
+
+  if (t < flipDuration) {
+    // First flip: face-up → face-down
+    return easeInOutCubic(t / flipDuration) * Math.PI;
+  } else if (t < flipDuration + pauseDuration) {
+    // Pause at face-down
+    return Math.PI;
+  } else if (t < 2 * flipDuration + pauseDuration) {
+    // Second flip: face-down → face-up
+    return Math.PI + easeInOutCubic((t - flipDuration - pauseDuration) / flipDuration) * Math.PI;
+  } else {
+    // Pause at face-up
+    return 0;
+  }
+}
+
+/**
  * Calculate per-slice rotation offsets for the wave animation.
  *
  * Each slice does a full 360-degree flip, staggered so the next slice

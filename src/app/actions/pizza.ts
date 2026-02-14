@@ -11,7 +11,7 @@ const pizzaSchema = z.object({
   mode: z.enum(['whole', 'half']).optional().default('whole'),
   leftToppings: z.array(z.string()).max(4).optional().default([]),
   rightToppings: z.array(z.string()).max(4).optional().default([]),
-  animation: z.enum(['cw', 'ccw', 'wave', 'wave-ccw']).nullable().optional(),
+  animation: z.enum(['cw', 'ccw', 'wave', 'wave-ccw', 'flip']).nullable().optional(),
   filter: z.enum(['mono', 'neon', 'negative']).nullable().optional(),
 });
 
