@@ -128,7 +128,7 @@ export default function PizzaCanvas() {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
 
     if (!animation) {
@@ -259,7 +259,7 @@ export default function PizzaCanvas() {
     setExporting(true);
     try {
       const { encode } = await import('modern-gif');
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
       if (!ctx) return;
 
       const frames: Array<{ data: CanvasImageSource; delay: number }> = [];
